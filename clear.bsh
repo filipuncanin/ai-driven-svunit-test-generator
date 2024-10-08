@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Izbriši specificirane fajlove iz trenutne putanje
+rm -rf ./work
+rm -f pack.vhd assertions.txt top_wrapper.sv top_wrapper_unit_test.sv top_tb_wrapper.sv top_tb_wrapper_unit_test.sv 
+rm -f modelsim.ini VHDLfiles.f .__testsuite.sv .svunit.f .testrunner.sv compile.log simulator_cmd_script.txt
+rm -f tabela_svojstava_dut.xlsx tabela_svojstava_tb.xlsx opis.txt top.sv
+
+# Proveri da li fajl top.vhd postoji
+if [ -f top.vhd ]; then
+    # Napravi kopiju top.vhd za sigurnost
+    cp top.vhd top.vhd.bak
+
+    # Ukloni liniju 'use work.pack.all'
+    grep -v 'use work.pack.all;' top.vhd.bak > top.vhd
+
+    # Promenljiva za praćenje da li smo u delu posle 'type' linije
+    in_type_block=0
+
+    # Obradi datoteku liniju po liniju
+    awk '
+    {
+        if ($0 ~ /type/) {
+            # Pronađena je linija koja sadrži 'type', uklanjamo '--' i prelazimo u blok posle 'type'
+            sub(/--/, "", $0)
+            in_type_block=1
+        } else if (in_type_block && $0 ~ /--/) {
+            # Ako smo u bloku posle 'type' i linija sadrži komentar, uklanjamo komentar
+            sub(/--/, "", $0)
+        } else if (in_type_block && $0 !~ /--/) {
+            # Ako naiđemo na liniju koja ne sadrži '--', izlazimo iz bloka
+            in_type_block=0
+        }
+        print
+    }' top.vhd > top.vhd.tmp
+
+    # Zameni originalnu datoteku privremenom
+    mv top.vhd.tmp top.vhd
+else
+    echo "Fajl 'top.vhd' ne postoji."
+fi
+
+rm -f top.vhd.bak
+
+echo "Successfully cleared."

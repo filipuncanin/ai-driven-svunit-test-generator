@@ -1,0 +1,3 @@
+#!/bin/bash
+
+py scripts/load_scores_from_excel.py

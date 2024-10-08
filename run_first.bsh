@@ -1,0 +1,39 @@
+#!/bin/bash
+
+pip install openai
+pip install python-dotenv
+pip install openpyxl
+pip install pywin32
+
+cd .
+vlib work
+vmap work ./work
+cd ..
+source Setup.bsh    
+cd automation_script/scripts
+chmod +x modify_vhdl.pl wrap_vhdl.pl
+cd ..
+
+# generisanje assertiona
+py -u scripts/create_assertions.py
+
+# priprema okruzenja za pokretanje testova 
+./scripts/modify_vhdl.pl top.vhd
+./scripts/wrap_vhdl.pl top.vhd
+
+# Kreiranje unit testa sa svim tvrdnjama
+py scripts/create_unit_test.py
+
+# Pokretanje simulacije radi pribavljanja logicki ispravnih tvrdnji
+runSVUnitNP -s questa -m VHDLfiles.f
+
+# Odbacivanje logicki neispravnih tvrdnji na osnovu run.log fajla
+py scripts/invalid_assertion_filter.py
+
+# Kreiranje unit testa sa logicki ispravnim tvrdnjama
+py scripts/create_unit_test.py
+
+rm -rf ./work
+rm -f modelsim.ini .testrunner.sv .__testsuite.sv .svunit.f simulator_cmd_script.txt tests.xml compile.log
+rm -f run.log run_dut.log run_tb.log processed_run_dut.log processed_run_tb.log processed_assertions_dut.txt processed_assertions_tb.txt
+rm -f VHDLfiles.f
